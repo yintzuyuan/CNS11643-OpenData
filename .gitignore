@@ -1,0 +1,70 @@
+# macOS 系統檔案
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows 系統檔案
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE 和編輯器檔案
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Python 相關
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 環境相關
+.env
+.venv
+env/
+venv/
+ENV/
+
+# 日誌檔案
+*.log
+
+# 暫存檔案
+tmp/
+temp/
+
+# 壓縮檔
+*.zip
+*.gz
+*.tar
+*.7z
+*.rar
+
+# 資料庫檔案
+*.db
+*.sqlite3
+
+# 其他
+*.bak
+*.tmp
+*.temp 
