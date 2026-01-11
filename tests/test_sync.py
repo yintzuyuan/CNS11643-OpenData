@@ -153,18 +153,76 @@ class TestCheckUpdate(unittest.TestCase):
 class TestVerifyData(unittest.TestCase):
     """測試資料驗證模組"""
 
-    def test_verify_missing_release_txt(self):
-        """測試缺少 release.txt 時驗證失敗"""
-        from config import SyncConfig
-        from verify_data import verify_data
+    def _create_complete_data_structure(self, tmppath: Path) -> None:
+        """建立完整的資料結構供測試使用"""
+        tables_path = tmppath / "Tables"
+        tables_path.mkdir()
+
+        # L1：建立必要目錄結構
+        (tables_path / "MapingTables").mkdir()
+        (tables_path / "MapingTables" / "Big5").mkdir()
+        (tables_path / "MapingTables" / "Unicode").mkdir()
+        (tables_path / "MapingTables" / "地政").mkdir()
+        (tables_path / "Properties").mkdir()
+        (tables_path / "Properties" / "parts").mkdir()
+
+        # L2：建立關鍵檔案
+        # 基本資訊
+        (tmppath / "release.txt").write_text("版本：20250718", encoding="utf-8")
+        (tmppath / "OpenDataFilesList.csv").write_text("test", encoding="utf-8")
+
+        # Big5 對照表
+        (tables_path / "MapingTables" / "Big5" / "CNS2BIG5.txt").write_text(
+            "test", encoding="utf-8"
+        )
+
+        # Unicode 對照表
+        (
+            tables_path / "MapingTables" / "Unicode" / "CNS2UNICODE_Unicode BMP.txt"
+        ).write_text("test", encoding="utf-8")
+
+        # 其他對照表
+        for filename in ["CNS2DCI.txt", "CNS2TAX.txt", "CNS2INC.txt", "CNS2FIN.txt"]:
+            (tables_path / "MapingTables" / filename).write_text(
+                "test", encoding="utf-8"
+            )
+
+        # 屬性資料
+        for filename in [
+            "CNS_phonetic.txt",
+            "CNS_radical.txt",
+            "CNS_stroke.txt",
+            "CNS_cangjie.txt",
+        ]:
+            (tables_path / "Properties" / filename).write_text("test", encoding="utf-8")
+
+        # parts 目錄需要有檔案
+        (tables_path / "Properties" / "parts" / "test.png").write_bytes(b"test")
+
+        # 地政目錄需要有檔案
+        (tables_path / "MapingTables" / "地政" / "台北市.txt").write_text(
+            "test", encoding="utf-8"
+        )
+
+    def test_verify_missing_directory(self):
+        """測試缺少目錄時驗證失敗"""
+        from verify_data import verify_directories
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            config = SyncConfig()
-            config.root_path = Path(tmpdir)
-            config.tables_path = Path(tmpdir) / "Tables"
+            tmppath = Path(tmpdir)
+            errors = verify_directories(tmppath)
+            self.assertTrue(len(errors) > 0)
+            self.assertTrue(any("Tables/MapingTables" in e for e in errors))
 
-            result = verify_data(config)
-            self.assertFalse(result)
+    def test_verify_missing_files(self):
+        """測試缺少檔案時驗證失敗"""
+        from verify_data import verify_files
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            errors = verify_files(tmppath)
+            self.assertTrue(len(errors) > 0)
+            self.assertTrue(any("release.txt" in e for e in errors))
 
     def test_verify_complete_data(self):
         """測試完整資料時驗證成功"""
@@ -173,25 +231,7 @@ class TestVerifyData(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmpdir:
             tmppath = Path(tmpdir)
-            tables_path = tmppath / "Tables"
-            tables_path.mkdir()
-
-            # 建立必要檔案（根目錄）
-            (tmppath / "release.txt").write_text("版本：20250718", encoding="utf-8")
-            (tmppath / "OpenDataFilesList.csv").write_text("test", encoding="utf-8")
-
-            # 建立必要目錄（Tables/ 下）
-            (tables_path / "MapingTables").mkdir()
-            (tables_path / "MapingTables" / "test.txt").write_text(
-                "test", encoding="utf-8"
-            )
-            (tables_path / "Properties").mkdir()
-            (tables_path / "Properties" / "test.txt").write_text(
-                "test", encoding="utf-8"
-            )
-            # 建立 parts 目錄（由 CNS_component_word.zip 解壓縮）
-            (tables_path / "Properties" / "parts").mkdir()
-            (tables_path / "Properties" / "parts" / "test.png").write_bytes(b"test")
+            self._create_complete_data_structure(tmppath)
 
             # 建立元資料
             metadata = {"release_version": "20250718"}
@@ -200,9 +240,26 @@ class TestVerifyData(unittest.TestCase):
 
             config = SyncConfig()
             config.root_path = tmppath
-            config.tables_path = tables_path
+            config.tables_path = tmppath / "Tables"
 
             result = verify_data(config)
+            self.assertTrue(result)
+
+    def test_verify_skip_metadata(self):
+        """測試跳過元資料驗證"""
+        from config import SyncConfig
+        from verify_data import verify_data
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            self._create_complete_data_structure(tmppath)
+
+            # 不建立元資料，但使用 skip_metadata=True
+            config = SyncConfig()
+            config.root_path = tmppath
+            config.tables_path = tmppath / "Tables"
+
+            result = verify_data(config, skip_metadata=True)
             self.assertTrue(result)
 
 

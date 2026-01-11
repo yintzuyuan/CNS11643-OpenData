@@ -45,3 +45,6 @@ jobs:
 
       - name: Run pytest
         run: pytest --cov=scripts --cov-report=term-missing
+
+      - name: Verify data structure
+        run: python scripts/verify_data.py --skip-metadata
