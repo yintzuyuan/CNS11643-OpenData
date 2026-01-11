@@ -111,7 +111,7 @@ class CNS11643Syncer:
             return None
 
     def _extract_zip(self, zip_path: Path, extract_dir: Path) -> None:
-        """解壓縮 ZIP 檔案"""
+        """解壓縮 ZIP 檔案，正確處理 Big5 編碼的檔名"""
         # 清除舊目錄
         if extract_dir.exists():
             shutil.rmtree(extract_dir)
@@ -119,7 +119,29 @@ class CNS11643Syncer:
         extract_dir.mkdir(parents=True, exist_ok=True)
 
         with zipfile.ZipFile(zip_path, 'r') as zf:
-            zf.extractall(extract_dir)
+            for info in zf.infolist():
+                # 修正檔名編碼：CP437 → Big5
+                try:
+                    # Python zipfile 將非 UTF-8 檔名解碼為 CP437
+                    # 需要還原為 bytes 再用 Big5 解碼
+                    filename_bytes = info.filename.encode('cp437')
+                    correct_filename = filename_bytes.decode('big5')
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    # 如果轉換失敗，使用原始檔名
+                    correct_filename = info.filename
+
+                # 建立目標路徑
+                target_path = extract_dir / correct_filename
+
+                # 如果是目錄，建立目錄
+                if info.is_dir():
+                    target_path.mkdir(parents=True, exist_ok=True)
+                else:
+                    # 確保父目錄存在
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    # 解壓縮檔案
+                    with zf.open(info) as src, open(target_path, 'wb') as dst:
+                        dst.write(src.read())
 
         print(f"  已解壓縮至：{extract_dir}/")
 
