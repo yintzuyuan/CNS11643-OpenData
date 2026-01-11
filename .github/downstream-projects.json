@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "下游專案配置：當 CNS 發音資料更新時自動通知這些專案重新生成資料庫",
+  "instructions": {
+    "add_project": "新增專案：在 projects 陣列加入新項目，設定 enabled: true",
+    "disable_project": "停用專案：設定 enabled: false",
+    "required_secret": "需在 CNS11643-OpenData 設定 DOWNSTREAM_DISPATCH_TOKEN secret",
+    "token_permissions": "PAT 需要對所有下游專案有 Contents: write 權限"
+  },
+  "projects": [
+    {
+      "name": "ShowBopomofo",
+      "repository": "yintzuyuan/ShowBopomofo",
+      "event_type": "cns-data-updated",
+      "enabled": true,
+      "description": "Glyphs.app 中文注音顯示外掛"
+    }
+  ]
+}
