@@ -1,0 +1,81 @@
+name: Notify Downstream Projects
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      # Phonetic data files
+      - 'Tables/Properties/CNS_phonetic.txt'
+      - 'Tables/Properties/CNS_pinyin_*.txt'
+      # Unicode mapping files
+      - 'Tables/MapingTables/Unicode/**'
+      # Release info
+      - 'release.txt'
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  notify-downstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get release version
+        id: version
+        run: |
+          if [ -f "release.txt" ]; then
+            VERSION=$(head -1 release.txt | grep -oE '[0-9]{8}' | head -1 || echo "unknown")
+          else
+            VERSION="unknown"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Notify downstream projects
+        env:
+          DOWNSTREAM_TOKEN: ${{ secrets.DOWNSTREAM_DISPATCH_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          # Read downstream projects config
+          CONFIG_FILE=".github/downstream-projects.json"
+
+          if [ ! -f "$CONFIG_FILE" ]; then
+            echo "No downstream projects config found"
+            exit 0
+          fi
+
+          # Parse and notify each enabled project
+          jq -c '.projects[] | select(.enabled == true)' "$CONFIG_FILE" | while read -r project; do
+            NAME=$(echo "$project" | jq -r '.name')
+            REPO=$(echo "$project" | jq -r '.repository')
+            EVENT_TYPE=$(echo "$project" | jq -r '.event_type')
+
+            echo "Notifying $NAME ($REPO)..."
+
+            # Send repository dispatch
+            curl -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $DOWNSTREAM_TOKEN" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/$REPO/dispatches" \
+              -d "{\"event_type\":\"$EVENT_TYPE\",\"client_payload\":{\"version\":\"$VERSION\",\"source_sha\":\"$SOURCE_SHA\"}}"
+
+            echo "Notified $NAME successfully"
+          done
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          echo "## Downstream Notification Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CNS Version | \`$VERSION\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Notified Projects" >> $GITHUB_STEP_SUMMARY
+          jq -r '.projects[] | select(.enabled == true) | "- \(.name) (\(.repository))"' .github/downstream-projects.json >> $GITHUB_STEP_SUMMARY
