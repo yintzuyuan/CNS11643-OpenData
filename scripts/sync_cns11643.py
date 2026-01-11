@@ -151,20 +151,42 @@ class CNS11643Syncer:
 
     def _extract_nested_zips(self, parent_dir: Path) -> None:
         """處理目錄內的巢狀 ZIP 檔案"""
-        # 目前已知的巢狀 ZIP：CNS_component_word.zip → parts/
-        nested_zip_map = {
-            'CNS_component_word.zip': 'parts'
-        }
+        # CNS_component_word.zip 內部已有 parts/ 目錄結構
+        # 直接解壓縮到 parent_dir，ZIP 內的 parts/ 會自動建立
+        nested_zips = ['CNS_component_word.zip']
 
-        for zip_name, extract_name in nested_zip_map.items():
+        for zip_name in nested_zips:
             zip_path = parent_dir / zip_name
             if zip_path.exists():
-                extract_dir = parent_dir / extract_name
                 print(f"  處理巢狀壓縮檔：{zip_name}")
-                self._extract_zip(zip_path, extract_dir)
+                self._extract_nested_zip_preserve_structure(zip_path, parent_dir)
                 # 解壓縮後刪除巢狀 ZIP 檔案
                 zip_path.unlink()
                 print(f"  已刪除：{zip_name}")
+
+    def _extract_nested_zip_preserve_structure(
+        self, zip_path: Path, extract_dir: Path
+    ) -> None:
+        """解壓縮巢狀 ZIP，保留其內部目錄結構（不清除目標目錄）"""
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            for info in zf.infolist():
+                # 修正檔名編碼：CP437 → Big5
+                try:
+                    filename_bytes = info.filename.encode('cp437')
+                    correct_filename = filename_bytes.decode('big5')
+                except (UnicodeDecodeError, UnicodeEncodeError):
+                    correct_filename = info.filename
+
+                target_path = extract_dir / correct_filename
+
+                if info.is_dir():
+                    target_path.mkdir(parents=True, exist_ok=True)
+                else:
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(info) as src, open(target_path, 'wb') as dst:
+                        dst.write(src.read())
+
+        print(f"  已解壓縮至：{extract_dir}/")
 
     def _load_metadata(self) -> Dict:
         """載入現有元資料"""
