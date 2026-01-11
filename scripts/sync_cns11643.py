@@ -103,6 +103,10 @@ class CNS11643Syncer:
                 # 解壓縮後刪除 ZIP 檔案（節省空間）
                 local_path.unlink()
 
+                # 處理巢狀 ZIP 檔案（Properties 內的 CNS_component_word.zip）
+                if filename == 'Properties.zip':
+                    self._extract_nested_zips(extract_dir)
+
             print(f"  完成：{self._format_size(total_size)}")
             return file_info
 
@@ -144,6 +148,23 @@ class CNS11643Syncer:
                         dst.write(src.read())
 
         print(f"  已解壓縮至：{extract_dir}/")
+
+    def _extract_nested_zips(self, parent_dir: Path) -> None:
+        """處理目錄內的巢狀 ZIP 檔案"""
+        # 目前已知的巢狀 ZIP：CNS_component_word.zip → parts/
+        nested_zip_map = {
+            'CNS_component_word.zip': 'parts'
+        }
+
+        for zip_name, extract_name in nested_zip_map.items():
+            zip_path = parent_dir / zip_name
+            if zip_path.exists():
+                extract_dir = parent_dir / extract_name
+                print(f"  處理巢狀壓縮檔：{zip_name}")
+                self._extract_zip(zip_path, extract_dir)
+                # 解壓縮後刪除巢狀 ZIP 檔案
+                zip_path.unlink()
+                print(f"  已刪除：{zip_name}")
 
     def _load_metadata(self) -> Dict:
         """載入現有元資料"""
