@@ -229,7 +229,7 @@ class TestSyncCNS11643(unittest.TestCase):
             self.assertEqual(result, '20250718')
 
     def test_extract_nested_zips(self):
-        """測試巢狀 ZIP 檔案解壓縮"""
+        """測試巢狀 ZIP 檔案解壓縮（保留 ZIP 內部目錄結構）"""
         import zipfile
         from sync_cns11643 import CNS11643Syncer
         from config import SyncConfig
@@ -240,10 +240,11 @@ class TestSyncCNS11643(unittest.TestCase):
             properties_dir.mkdir()
 
             # 建立模擬的 CNS_component_word.zip
+            # ZIP 內部已有 parts/ 目錄結構（與實際檔案結構相同）
             nested_zip_path = properties_dir / 'CNS_component_word.zip'
             with zipfile.ZipFile(nested_zip_path, 'w') as zf:
-                zf.writestr('test_part.png', b'fake png data')
-                zf.writestr('subdir/another.png', b'more data')
+                zf.writestr('parts/test_part.png', b'fake png data')
+                zf.writestr('parts/subdir/another.png', b'more data')
 
             config = SyncConfig()
             config.tables_path = tmppath
@@ -251,7 +252,7 @@ class TestSyncCNS11643(unittest.TestCase):
             syncer = CNS11643Syncer(config)
             syncer._extract_nested_zips(properties_dir)
 
-            # 驗證解壓縮結果
+            # 驗證解壓縮結果（ZIP 內的 parts/ 目錄被保留）
             parts_dir = properties_dir / 'parts'
             self.assertTrue(parts_dir.is_dir())
             self.assertTrue((parts_dir / 'test_part.png').exists())
