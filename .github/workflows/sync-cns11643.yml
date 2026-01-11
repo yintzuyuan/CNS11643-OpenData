@@ -17,6 +17,12 @@ env:
   DATA_GOV_API_URL: https://data.gov.tw/api/v2/rest/dataset/5961
   CNS11643_BASE_URL: https://www.cns11643.gov.tw/opendata
 
+# 授予 workflow 寫入權限（用於建立 PR 和 Issue）
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 jobs:
   check-update:
     runs-on: ubuntu-latest
