@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 檢查 CNS11643 資料是否有更新
 輸出 GitHub Actions outputs 供後續 job 使用
@@ -24,8 +23,8 @@ def get_api_modified_date(config: SyncConfig) -> str:
 
     data = response.json()
     # API 回傳結構：{ result: { modifiedDate: "..." } }
-    result = data.get('result', {})
-    return result.get('modifiedDate', '')
+    result = data.get("result", {})
+    return result.get("modifiedDate", "")
 
 
 def get_remote_release_version(config: SyncConfig) -> str:
@@ -36,31 +35,31 @@ def get_remote_release_version(config: SyncConfig) -> str:
     response.raise_for_status()
 
     # 解碼為 UTF-8 with BOM
-    text = response.content.decode('utf-8-sig')
+    text = response.content.decode("utf-8-sig")
 
     # 解析版本號（格式：版本：20250718 或 版本:20250718）
     for line in text.splitlines():
-        if '版本：' in line or '版本:' in line:
-            parts = line.split('：') if '：' in line else line.split(':')
+        if "版本：" in line or "版本:" in line:
+            parts = line.split("：") if "：" in line else line.split(":")
             if len(parts) >= 2:
                 return parts[1].strip()
 
-    return ''
+    return ""
 
 
 def get_current_metadata(config: SyncConfig) -> dict:
     """讀取本地元資料"""
     if config.metadata_path.exists():
-        with open(config.metadata_path, 'r', encoding='utf-8') as f:
+        with open(config.metadata_path, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
 def set_github_output(name: str, value: str) -> None:
     """設定 GitHub Actions output"""
-    github_output = os.getenv('GITHUB_OUTPUT')
+    github_output = os.getenv("GITHUB_OUTPUT")
     if github_output:
-        with open(github_output, 'a') as f:
+        with open(github_output, "a") as f:
             f.write(f"{name}={value}\n")
     else:
         # 本地測試時輸出到 stdout
@@ -78,7 +77,7 @@ def main() -> int:
         remote_version = get_remote_release_version(config)
     except Exception as e:
         print(f"錯誤：無法取得遠端資訊 - {e}")
-        set_github_output('has_update', 'false')
+        set_github_output("has_update", "false")
         return 1
 
     print(f"遠端 API 修改日期：{api_modified_date}")
@@ -86,8 +85,8 @@ def main() -> int:
 
     # 取得本地資訊
     metadata = get_current_metadata(config)
-    current_version = metadata.get('release_version', '')
-    current_api_date = metadata.get('api_modified_date', '')
+    current_version = metadata.get("release_version", "")
+    current_api_date = metadata.get("api_modified_date", "")
 
     print(f"本地 release 版本：{current_version or '(無)'}")
     print(f"本地 API 修改日期：{current_api_date or '(無)'}")
@@ -111,13 +110,13 @@ def main() -> int:
         print("資料已是最新版本")
 
     # 設定 outputs
-    set_github_output('has_update', str(has_update).lower())
-    set_github_output('new_version', remote_version)
-    set_github_output('current_version', current_version)
-    set_github_output('api_modified_date', api_modified_date)
+    set_github_output("has_update", str(has_update).lower())
+    set_github_output("new_version", remote_version)
+    set_github_output("current_version", current_version)
+    set_github_output("api_modified_date", api_modified_date)
 
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
