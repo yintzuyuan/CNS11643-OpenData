@@ -13,6 +13,7 @@ Desktop.ini
 # IDE 和編輯器檔案
 .idea/
 .vscode/
+.claude/
 *.swp
 *.swo
 *~
@@ -67,4 +68,13 @@ temp/
 # 其他
 *.bak
 *.tmp
-*.temp 
+*.temp
+
+# CNS11643 大型檔案（超過 GitHub 100MB 限制）
+# 需要時請從官網下載：https://www.cns11643.gov.tw/opendata/
+Fonts_Sung/
+Fonts_Kai/
+Voice/
+
+# 測試產生的暫存資料
+data/

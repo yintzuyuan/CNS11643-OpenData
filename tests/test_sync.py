@@ -1,0 +1,230 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+CNS11643 資料同步功能測試
+"""
+
+import json
+import os
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+# 將 scripts 目錄加入 path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+
+
+class TestSyncConfig(unittest.TestCase):
+    """測試同步設定模組"""
+
+    def test_default_api_url(self):
+        """測試預設 API URL"""
+        from config import SyncConfig
+        config = SyncConfig()
+        self.assertEqual(
+            config.data_gov_api_url,
+            'https://data.gov.tw/api/v2/rest/dataset/5961'
+        )
+
+    def test_default_base_url(self):
+        """測試預設下載 URL"""
+        from config import SyncConfig
+        config = SyncConfig()
+        self.assertEqual(
+            config.cns11643_base_url,
+            'https://www.cns11643.gov.tw/opendata'
+        )
+
+    def test_env_override(self):
+        """測試環境變數覆蓋預設值"""
+        with patch.dict(os.environ, {
+            'DATA_GOV_API_URL': 'https://custom.api.url',
+            'CNS11643_BASE_URL': 'https://custom.base.url'
+        }):
+            # 重新載入模組以套用新環境變數
+            import importlib
+            import config
+            importlib.reload(config)
+
+            cfg = config.SyncConfig()
+            self.assertEqual(cfg.data_gov_api_url, 'https://custom.api.url')
+            self.assertEqual(cfg.cns11643_base_url, 'https://custom.base.url')
+
+    def test_sync_files_list(self):
+        """測試同步檔案清單"""
+        from config import SyncConfig
+        config = SyncConfig()
+
+        # 必須包含的檔案
+        required_files = [
+            'release.txt',
+            'OpenDataFilesList.csv',
+            'MapingTables.zip',
+            'Properties.zip'
+        ]
+
+        for f in required_files:
+            self.assertIn(f, config.sync_files)
+
+    def test_metadata_path(self):
+        """測試元資料路徑屬性"""
+        from config import SyncConfig
+        config = SyncConfig()
+
+        expected = config.data_path / config.metadata_file
+        self.assertEqual(config.metadata_path, expected)
+
+
+class TestCheckUpdate(unittest.TestCase):
+    """測試更新檢查模組"""
+
+    @patch('check_update.requests.get')
+    def test_get_api_modified_date(self, mock_get):
+        """測試從 API 取得修改日期"""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'result': {
+                'modifiedDate': '2025-11-12 21:55:40'
+            }
+        }
+        mock_get.return_value = mock_response
+
+        from check_update import get_api_modified_date
+        from config import SyncConfig
+
+        result = get_api_modified_date(SyncConfig())
+        self.assertEqual(result, '2025-11-12 21:55:40')
+
+    @patch('check_update.requests.get')
+    def test_get_remote_release_version(self, mock_get):
+        """測試從遠端取得版本號"""
+        mock_response = MagicMock()
+        mock_response.content = '版本：20250718\n更新日期：2025-07-18'.encode('utf-8-sig')
+        mock_get.return_value = mock_response
+
+        from check_update import get_remote_release_version
+        from config import SyncConfig
+
+        result = get_remote_release_version(SyncConfig())
+        self.assertEqual(result, '20250718')
+
+    def test_get_current_metadata_empty(self):
+        """測試讀取不存在的元資料"""
+        from check_update import get_current_metadata
+        from config import SyncConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = SyncConfig()
+            config.root_path = Path(tmpdir)
+
+            result = get_current_metadata(config)
+            self.assertEqual(result, {})
+
+    def test_get_current_metadata_exists(self):
+        """測試讀取存在的元資料"""
+        from check_update import get_current_metadata
+        from config import SyncConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = SyncConfig()
+            config.root_path = Path(tmpdir)
+
+            # 建立測試元資料
+            metadata = {
+                'release_version': '20250325',
+                'api_modified_date': '2025-03-25 10:00:00'
+            }
+            metadata_path = Path(tmpdir) / config.metadata_file
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f)
+
+            result = get_current_metadata(config)
+            self.assertEqual(result['release_version'], '20250325')
+
+
+class TestVerifyData(unittest.TestCase):
+    """測試資料驗證模組"""
+
+    def test_verify_missing_release_txt(self):
+        """測試缺少 release.txt 時驗證失敗"""
+        from verify_data import verify_data
+        from config import SyncConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = SyncConfig()
+            config.root_path = Path(tmpdir)
+            config.tables_path = Path(tmpdir) / 'Tables'
+
+            result = verify_data(config)
+            self.assertFalse(result)
+
+    def test_verify_complete_data(self):
+        """測試完整資料時驗證成功"""
+        from verify_data import verify_data
+        from config import SyncConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            tables_path = tmppath / 'Tables'
+            tables_path.mkdir()
+
+            # 建立必要檔案（根目錄）
+            (tmppath / 'release.txt').write_text('版本：20250718', encoding='utf-8')
+            (tmppath / 'OpenDataFilesList.csv').write_text('test', encoding='utf-8')
+
+            # 建立必要目錄（Tables/ 下）
+            (tables_path / 'MapingTables').mkdir()
+            (tables_path / 'MapingTables' / 'test.txt').write_text('test', encoding='utf-8')
+            (tables_path / 'Properties').mkdir()
+            (tables_path / 'Properties' / 'test.txt').write_text('test', encoding='utf-8')
+
+            # 建立元資料
+            metadata = {'release_version': '20250718'}
+            with open(tmppath / 'sync_metadata.json', 'w', encoding='utf-8') as f:
+                json.dump(metadata, f)
+
+            config = SyncConfig()
+            config.root_path = tmppath
+            config.tables_path = tables_path
+
+            result = verify_data(config)
+            self.assertTrue(result)
+
+
+class TestSyncCNS11643(unittest.TestCase):
+    """測試同步模組"""
+
+    def test_format_size(self):
+        """測試檔案大小格式化"""
+        from sync_cns11643 import CNS11643Syncer
+
+        self.assertEqual(CNS11643Syncer._format_size(1024), '1.0 KB')
+        self.assertEqual(CNS11643Syncer._format_size(1048576), '1.0 MB')
+        self.assertEqual(CNS11643Syncer._format_size(500), '500.0 B')
+
+    def test_parse_release_version(self):
+        """測試解析版本號"""
+        from sync_cns11643 import CNS11643Syncer
+        from config import SyncConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+
+            # 建立 release.txt
+            (tmppath / 'release.txt').write_text(
+                '版本：20250718\n更新日期：2025-07-18',
+                encoding='utf-8'
+            )
+
+            config = SyncConfig()
+            config.root_path = tmppath
+
+            syncer = CNS11643Syncer(config)
+            result = syncer._parse_release_version()
+            self.assertEqual(result, '20250718')
+
+
+if __name__ == '__main__':
+    unittest.main()

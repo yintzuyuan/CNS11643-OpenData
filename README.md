@@ -71,7 +71,27 @@
 使用本資料時，請遵守台灣政府對開放資料的使用規範。相關規範請參考政府資料開放平臺。
 
 ## 更新資訊
-本儲存庫會不定期根據 CNS11643 全字庫官方發布的更新進行同步。最新的更新資訊和資料版本請參考 `release.txt` 文件。
+
+本儲存庫透過 GitHub Actions 每週自動檢查 CNS11643 資料更新，並建立 PR 供審核。
+
+### 自動同步範圍
+
+| 資料 | 說明 |
+|------|------|
+| MapingTables | Unicode、Big5 編碼映射表 |
+| Properties | 注音、拼音、部首、筆畫等屬性資料 |
+
+### 手動下載（大型檔案）
+
+以下檔案超過 GitHub 100MB 限制，需從官網下載：
+
+| 檔案 | 下載連結 |
+|------|----------|
+| 宋體字型 | https://www.cns11643.gov.tw/opendata/Fonts_Sung.zip |
+| 楷體字型 | https://www.cns11643.gov.tw/opendata/Fonts_Kai.zip |
+| 聲音檔案 | https://www.cns11643.gov.tw/opendata/Voice.zip |
+
+下載後解壓縮至 `data/CNS11643/` 目錄。
 
 ## 相關連結
 - [CNS11643全字庫官方網站](https://www.cns11643.gov.tw/)
