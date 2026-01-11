@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 驗證同步資料的完整性
 """
@@ -19,14 +18,14 @@ def verify_data(config: SyncConfig) -> bool:
     errors = []
 
     # 檢查必要檔案
-    required_files = ['release.txt', 'OpenDataFilesList.csv']
+    required_files = ["release.txt", "OpenDataFilesList.csv"]
     for filename in required_files:
         filepath = config.data_path / filename
         if not filepath.exists():
             errors.append(f"缺少必要檔案：{filename}")
 
     # 檢查必要目錄（位於 Tables/ 下）
-    required_dirs = ['MapingTables', 'Properties']
+    required_dirs = ["MapingTables", "Properties"]
     for dirname in required_dirs:
         dirpath = config.tables_path / dirname
         if not dirpath.is_dir():
@@ -35,7 +34,7 @@ def verify_data(config: SyncConfig) -> bool:
             errors.append(f"目錄為空：Tables/{dirname}")
 
     # 檢查 Properties/parts 目錄（由 CNS_component_word.zip 解壓縮）
-    parts_dir = config.tables_path / 'Properties' / 'parts'
+    parts_dir = config.tables_path / "Properties" / "parts"
     if not parts_dir.is_dir():
         errors.append("缺少必要目錄：Tables/Properties/parts")
     elif not any(parts_dir.iterdir()):
@@ -45,10 +44,10 @@ def verify_data(config: SyncConfig) -> bool:
     if not config.metadata_path.exists():
         errors.append("缺少元資料檔案")
     else:
-        with open(config.metadata_path, 'r', encoding='utf-8') as f:
+        with open(config.metadata_path, encoding="utf-8") as f:
             metadata = json.load(f)
 
-        if not metadata.get('release_version'):
+        if not metadata.get("release_version"):
             errors.append("元資料缺少版本資訊")
 
     # 報告結果
@@ -68,5 +67,5 @@ def main() -> int:
     return 0 if success else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
