@@ -34,6 +34,13 @@ def verify_data(config: SyncConfig) -> bool:
         elif not any(dirpath.iterdir()):
             errors.append(f"目錄為空：Tables/{dirname}")
 
+    # 檢查 Properties/parts 目錄（由 CNS_component_word.zip 解壓縮）
+    parts_dir = config.tables_path / 'Properties' / 'parts'
+    if not parts_dir.is_dir():
+        errors.append("缺少必要目錄：Tables/Properties/parts")
+    elif not any(parts_dir.iterdir()):
+        errors.append("目錄為空：Tables/Properties/parts")
+
     # 檢查元資料
     if not config.metadata_path.exists():
         errors.append("缺少元資料檔案")

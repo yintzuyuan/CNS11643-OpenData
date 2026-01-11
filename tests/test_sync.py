@@ -179,6 +179,9 @@ class TestVerifyData(unittest.TestCase):
             (tables_path / 'MapingTables' / 'test.txt').write_text('test', encoding='utf-8')
             (tables_path / 'Properties').mkdir()
             (tables_path / 'Properties' / 'test.txt').write_text('test', encoding='utf-8')
+            # 建立 parts 目錄（由 CNS_component_word.zip 解壓縮）
+            (tables_path / 'Properties' / 'parts').mkdir()
+            (tables_path / 'Properties' / 'parts' / 'test.png').write_bytes(b'test')
 
             # 建立元資料
             metadata = {'release_version': '20250718'}
@@ -224,6 +227,38 @@ class TestSyncCNS11643(unittest.TestCase):
             syncer = CNS11643Syncer(config)
             result = syncer._parse_release_version()
             self.assertEqual(result, '20250718')
+
+    def test_extract_nested_zips(self):
+        """測試巢狀 ZIP 檔案解壓縮"""
+        import zipfile
+        from sync_cns11643 import CNS11643Syncer
+        from config import SyncConfig
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmppath = Path(tmpdir)
+            properties_dir = tmppath / 'Properties'
+            properties_dir.mkdir()
+
+            # 建立模擬的 CNS_component_word.zip
+            nested_zip_path = properties_dir / 'CNS_component_word.zip'
+            with zipfile.ZipFile(nested_zip_path, 'w') as zf:
+                zf.writestr('test_part.png', b'fake png data')
+                zf.writestr('subdir/another.png', b'more data')
+
+            config = SyncConfig()
+            config.tables_path = tmppath
+
+            syncer = CNS11643Syncer(config)
+            syncer._extract_nested_zips(properties_dir)
+
+            # 驗證解壓縮結果
+            parts_dir = properties_dir / 'parts'
+            self.assertTrue(parts_dir.is_dir())
+            self.assertTrue((parts_dir / 'test_part.png').exists())
+            self.assertTrue((parts_dir / 'subdir' / 'another.png').exists())
+
+            # 驗證巢狀 ZIP 已被刪除
+            self.assertFalse(nested_zip_path.exists())
 
 
 if __name__ == '__main__':
