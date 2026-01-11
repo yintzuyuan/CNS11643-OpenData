@@ -104,7 +104,7 @@ jobs:
 
             ## 變更內容
 
-            請檢視 `data/CNS11643/release.txt` 了解詳細變更內容。
+            請檢視 `release.txt` 了解詳細變更內容。
 
             ## 驗證步驟
 
