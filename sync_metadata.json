@@ -1,6 +1,16 @@
 {
   "sync_history": [
     {
+      "date": "2026-03-22T00:33:35.139614+00:00",
+      "previous_version": "20260109",
+      "new_version": "20260318",
+      "changed_files": [
+        "release.txt",
+        "MapingTables.zip",
+        "Properties.zip"
+      ]
+    },
+    {
       "date": "2026-01-18T00:28:13.372068+00:00",
       "previous_version": "20260109",
       "new_version": "20260109",
@@ -21,24 +31,24 @@
       ]
     }
   ],
-  "last_sync": "2026-01-18T00:28:13.372083+00:00",
+  "last_sync": "2026-03-22T00:33:35.139629+00:00",
   "api_modified_date": "2026-01-11 20:49:21",
-  "release_version": "20260109",
+  "release_version": "20260318",
   "files": {
     "release.txt": {
-      "sha256": "3e50bd5079987eefb9362c3cab831fd08a53307e4945c724155bf22a79908d37",
-      "size": 2981,
-      "downloaded_at": "2026-01-18T00:28:01.681457+00:00"
+      "sha256": "3497cf48254d2953a9357e6a1e5cf44ffe70a8778709c62b376403494fd85906",
+      "size": 2772,
+      "downloaded_at": "2026-03-22T00:33:24.870192+00:00"
     },
     "MapingTables.zip": {
-      "sha256": "fb3179402976e326aaa3f257313f5cbdab14a8c14eff355095fa7d9b8435adba",
-      "size": 809800,
-      "downloaded_at": "2026-01-18T00:28:05.789111+00:00"
+      "sha256": "a3ae97a7b4c5b01341be52306e671cd4848079fd360fb895ad42259b74f734f5",
+      "size": 809798,
+      "downloaded_at": "2026-03-22T00:33:28.006989+00:00"
     },
     "Properties.zip": {
-      "sha256": "0d1e06958650fcc076699fa8cf1dc0f096c3ce2dfe75ba49dfd3104725112738",
-      "size": 3144255,
-      "downloaded_at": "2026-01-18T00:28:13.257854+00:00"
+      "sha256": "0e11a912ff5247fd1df16857126cdc15f70c6877bcbe7f2f46320afe47c2dc8f",
+      "size": 3157890,
+      "downloaded_at": "2026-03-22T00:33:35.008135+00:00"
     }
   }
 }
